@@ -11,10 +11,21 @@ Utiliza técnicas de **Procesamiento de Lenguaje Natural (NLP)** para interpreta
 El proyecto busca facilitar la **evaluación automática de opiniones de clientes** sobre productos o servicios, reduciendo el tiempo de análisis manual y mejorando la toma de decisiones.
 
 ---
+#Integrantes del equipo
 
-## ⚙️ Instrucciones de ejecución
+| Nombre completo | GitHub / Correo |
+|------------------|----------------|
+| Julio César Hernández Santiago | jchersa@outlook.com |
+| Keneth Chinchilla | keneth.chinchilla31@gmail.com |
+| David Hernández | david.hernandezv7@gmail.com |
+| José Felipe Inestroza | josefelipeinestrozabanegas@gmail.com |
+| Fernando Mejía | fm_mejiap@unicah.edu |
 
-### 1️⃣ Clonar el repositorio
+---
+
+#Instrucciones de ejecución
+
+#Clonar el repositorio
 ```bash
 git clone https://github.com/Unicah-MGI/03_QuantumStack.git
 cd 03_QuantumStack
