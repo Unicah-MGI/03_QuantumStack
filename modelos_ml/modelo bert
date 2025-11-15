@@ -1,1 +1,252 @@
+!pip install -q pymongo[srv] pandas scikit-learn nltk transformers datasets evaluate torch accelerate sentencepiece
+!pip uninstall -y transformers peft
+!pip install transformers==4.41.2
+!pip install peft==0.4.0
+!pip install datasets evaluate accelerate sentencepiece
+
+import os
+import pandas as pd
+import numpy as np
+from pymongo import MongoClient
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, classification_report
+import nltk
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+
+from pymongo import MongoClient
+import pandas as pd
+
+MONGO_URI = "mongodb+srv://joseinestroza_db_user:***********V@cluster0.172zje5.mongodb.net/?appName=Cluster0"
+client = MongoClient(MONGO_URI)
+
+db = client["DisneylandRevs"]
+collection = db["reviews"]
+
+cursor = collection.find({}, {
+    "_id": 0,
+    "Review_ID": 1,
+    "Review_Text": 1,
+    "Rating": 1,
+    "Year_Month": 1,
+    "user_id": 1,
+    "parks_id": 1
+})
+
+df = pd.DataFrame(list(cursor))
+print("Registros cargados:", len(df))
+df.head()
+
+import re
+
+def clean_text(s):
+    if not isinstance(s, str):
+        return ""
+    s = s.lower()
+    s = re.sub(r"http\S+"," ", s)
+    s = re.sub(r"[^a-záéíóúüñ0-9\s]", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+df["text_clean"] = df["Review_Text"].apply(clean_text)
+df.head()
+
+def rating_to_sentiment(r):
+    if r <= 2:
+        return 0   # negativo
+    elif r == 3:
+        return 1   # neutral
+    else:
+        return 2   # positivo
+
+df["label"] = df["Rating"].apply(rating_to_sentiment)
+df[["Rating", "label"]].head(10)
+
+from datasets import Dataset
+from sklearn.model_selection import train_test_split
+
+df_train, df_test = train_test_split(df, test_size=0.15, stratify=df["label"], random_state=42)
+
+train_ds = Dataset.from_pandas(df_train[["text_clean","label"]].rename(columns={"text_clean":"text"}))
+test_ds  = Dataset.from_pandas(df_test[["text_clean","label"]].rename(columns={"text_clean":"text"}))
+
+from transformers import AutoTokenizer
+
+model_name = "dccuchile/bert-base-spanish-wwm-cased"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+def tokenize_fn(example):
+    return tokenizer(
+        example["text"],
+        truncation=True,
+        padding="max_length",
+        max_length=128
+    )
+
+train_ds = train_ds.map(tokenize_fn, batched=True)
+test_ds = test_ds.map(tokenize_fn, batched=True)
+
+train_ds = train_ds.remove_columns(["text"])
+test_ds = test_ds.remove_columns(["text"])
+
+train_ds.set_format("torch")
+test_ds.set_format("torch")
+
+from transformers import BertForSequenceClassification, TrainingArguments, Trainer
+import evaluate
+
+# 1. Cargamos el modelo BERT preentrenado con una capa nueva de clasificación
+model = BertForSequenceClassification.from_pretrained(
+    model_name,
+    num_labels=3   # negativo, neutral, positivo
+)
+
+# 2. Definimos métricas de evaluación
+accuracy = evaluate.load("accuracy")
+f1 = evaluate.load("f1")
+
+def compute_metrics(eval_pred):
+    logits, labels = eval_pred
+    preds = logits.argmax(axis=1)
+    return {
+        "accuracy": accuracy.compute(predictions=preds, references=labels)["accuracy"],
+        "f1": f1.compute(predictions=preds, references=labels, average="weighted")["f1"]
+    }
+
+# 3. Parámetros de entrenamiento limpios 
+training_args = TrainingArguments(
+    output_dir="./bert_results",      # Carpeta donde se guardan resultados
+    eval_strategy="epoch",            
+    save_strategy="epoch",            
+    learning_rate=2e-5,               # LR recomendado para BERT
+    per_device_train_batch_size=8,
+    per_device_eval_batch_size=8,
+    num_train_epochs=3,
+    weight_decay=0.01,
+    logging_dir="./logs",
+    report_to=[]                       # ← Desactiva W&B
+)
+
+# 4. Creamos el Trainer
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_ds,
+    eval_dataset=test_ds,
+    tokenizer=tokenizer,
+    compute_metrics=compute_metrics
+)
+
+# 5. Entrenamos el modelo
+trainer.train()
+
+# 6. Guardamos el modelo final
+trainer.save_model("./bert_sentiment_model")
+
+# 1. Importar librerías
+# ----------------------------------------------------
+from transformers import BertForSequenceClassification, AutoTokenizer
+import torch
+import numpy as np
+from pymongo import MongoClient
+import pandas as pd
+
+
+# ----------------------------------------------------
+# 2. Cargar el modelo entrenado
+# ----------------------------------------------------
+model_path = "./bert_sentiment_model"
+
+tokenizer = AutoTokenizer.from_pretrained(model_path)
+model = BertForSequenceClassification.from_pretrained(model_path)
+model.eval()
+
+# ----------------------------------------------------
+# 3. Conectarse a MongoDB
+# ----------------------------------------------------
+MONGO_URI = "mongodb+srv://joseinestroza_db_user:mqcxklj2vd1r8zpV@cluster0.172zje5.mongodb.net/?appName=Cluster0"
+client = MongoClient(MONGO_URI)
+
+db = client["DisneylandRevs"]
+collection = db["reviews"]
+
+# ----------------------------------------------------
+# 4. Cargar reseñas desde Mongo
+# ----------------------------------------------------
+cursor = collection.find({}, {"_id": 1, "Review_Text": 1})
+reviews = list(cursor)
+
+print("Total de documentos:", len(reviews))
+
+# ----------------------------------------------------
+# 5. Función para limpiar texto
+# ----------------------------------------------------
+import re
+
+def clean_text(s):
+    if not isinstance(s, str):
+        return ""
+    s = s.lower()
+    s = re.sub(r"http\S+"," ", s)
+    s = re.sub(r"[^a-záéíóúüñ0-9\s]", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+# ----------------------------------------------------
+# 6. Función de predicción
+# ----------------------------------------------------
+def predict_sentiment(text):
+    text = clean_text(text)
+    inputs = tokenizer(
+        text,
+        return_tensors="pt",
+        truncation=True,
+        padding="max_length",
+        max_length=128
+    )
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+        logits = outputs.logits
+        pred = torch.argmax(logits, dim=1).item()
+
+    return pred  # 0 = negativo, 1 = neutral, 2 = positivo
+
+# ----------------------------------------------------
+# 7. Procesar y actualizar MongoDB
+# ----------------------------------------------------
+updated = 0
+sentiment_counts = {0: 0, 1: 0, 2: 0}
+
+from tqdm.auto import tqdm
+
+print("\nProcesando documentos...\n")
+
+for doc in tqdm(reviews, desc="Analizando", unit="doc"):
+    text = doc.get("Review_Text", "")
+    pred = predict_sentiment(text)
+
+    sentiment_counts[pred] += 1
+
+    collection.update_one(
+        {"_id": doc["_id"]},
+        {"$set": {"bert_sentiment": pred}}
+    )
+    updated += 1
+
+
+print("\nActualizados en MongoDB:", updated)
+
+# ----------------------------------------------------
+# 8. Mostrar resumen de sentimientos
+# ----------------------------------------------------
+label_map = {0: "Negativo", 1: "Neutral", 2: "Positivo"}
+
+print("\n---- Distribución de sentimientos ----")
+for label, count in sentiment_counts.items():
+    print(f"{label_map[label]} ({label}): {count}")
+
 
