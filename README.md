@@ -25,6 +25,15 @@ El proyecto busca facilitar la **evaluación automática de opiniones de cliente
 
 #Instrucciones de ejecución
 
+1. Creacion del Cluster en MongoDB
+
+   Como primer paso se debe realizar la creacion y configuracion en MongoDB donde se alojara la base de datos para almacenar y administrar nuestros datos.
+   <img width="1771" height="803" alt="image" src="https://github.com/user-attachments/assets/d4eb746c-57bc-4fd6-bc77-f6c5d2085116" />
+
+
+
+
+
 #Clonar el repositorio
 ```bash
 git clone https://github.com/Unicah-MGI/03_QuantumStack.git
