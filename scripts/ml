@@ -1,0 +1,96 @@
+!pip install pymongo pandas numpy matplotlib seaborn scikit-learn
+
+#Importacion de librerias necesarias
+from pymongo import MongoClient
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report
+import re
+import nltk
+from nltk.corpus import stopwords
+
+#Conexion a Mongo DB
+uri = "mongodb+srv://db_user:key@cluster0.172zje5.mongodb.net/"
+client = MongoClient(uri)
+db = client["DisneylandRevs"]
+collection = db["reviews"]
+print("Conexión establecida con MongoDB")
+
+db = client["DisneylandRevs"]
+collection = db["reviews"]
+results_collection = db["reviews_sentiment"]
+
+print("Conexión establecida")
+
+
+data = list(collection.find({}, {"Review_ID": 1, "Review_Text": 1}))
+df = pd.DataFrame(data)
+
+df.rename(columns={"_id": "review_id", "Review_Text": "text"}, inplace=True)
+
+print("Total de reseñas cargadas:", len(df))
+
+
+nltk.download("stopwords")
+
+stop_words = set(stopwords.words("english"))
+
+def clean_text(text):
+    text = text.lower()
+    text = re.sub(r"[^a-zA-Z\s]", "", text)
+    words = text.split()
+    words = [w for w in words if w not in stop_words]
+    return " ".join(words)
+
+df["clean_text"] = df["text"].apply(clean_text)
+
+
+
+vectorizer = TfidfVectorizer(max_features=5000)
+X = vectorizer.fit_transform(df["clean_text"])
+
+y = [1 if "good" in t or "excellent" in t or "great" in t else 0 for t in df["clean_text"]]
+
+model = LogisticRegression(max_iter=200)
+model.fit(X, y)
+
+print("Modelo Logistic Regression entrenado.")
+
+df["predicted_sentiment"] = model.predict(X)
+
+df["sentiment_label"] = df["predicted_sentiment"].map({1: "positive", 0: "negative"})
+
+print("Sentimientos generados.")
+
+
+feature_names = vectorizer.get_feature_names_out()
+
+def extract_keywords(vector_row, top_n=5):
+    row = vector_row.toarray().flatten()
+    top_indices = row.argsort()[-top_n:][::-1]
+    return [feature_names[i] for i in top_indices]
+
+df["keywords"] = [extract_keywords(X[i]) for i in range(X.shape[0])]
+
+print("Keywords generadas.")
+
+
+results = []
+
+for _, row in df.iterrows():
+    doc = {
+        "Review_ID": row["Review_ID"],
+        "sentiment": row["sentiment_label"],
+        "model_used": "Logistic Regression",
+        "keywords": row["keywords"]
+    }
+    results.append(doc)
+
+results_collection.insert_many(results)
+
+print("Resultados guardados en 'reviews_sentiment'")
