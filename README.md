@@ -34,7 +34,7 @@ Como primer paso se debe realizar la creacion y configuracion en MongoDB donde s
 Es necesario obtener los archivos CSV que contienen la información base utilizada en la base de datos. Estos archivos incluyen datos de las reviews y los usuarios. Los archivos CSV se encuentran en la ruta '/documentacion/Datasets/Datasets.zip'  y asegúrate de mantener la estructura y nombres originales de los archivos para evitar errores en los pasos posteriores de carga e importación.
 
 3. Conexion a MongoDB, Data Wrangling e Insercion de los datos en MongoDB.
-Este notebook guía paso a paso el flujo completo: establecer la conexión segura con la base de datos MongoDB (usando URI o variables de entorno), realizar el data wrangling necesario (limpieza, transformación y normalización de los CSV), y finalmente insertar los datos en las colecciones correspondientes de MongoDB. Sigue las celdas en orden, provee las credenciales solicitadas.
+En la carpeta scripts encontrarás el notebook ProyectoBDO.ipynb, que debe abrirse con Google Colab. Este notebook guía paso a paso el flujo completo: establecer la conexión segura con la base de datos MongoDB (usando URI o variables de entorno), realizar el data wrangling necesario (limpieza, transformación y normalización de los CSV), y finalmente insertar los datos en las colecciones correspondientes de MongoDB. Sigue las celdas en orden, provee las credenciales solicitadas.
 
 <img width="999" height="504" alt="image" src="https://github.com/user-attachments/assets/7eb715cc-1a5a-48de-aaa2-dc9063ca3016" />
 
