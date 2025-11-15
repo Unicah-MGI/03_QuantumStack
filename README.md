@@ -27,11 +27,22 @@ El proyecto busca facilitar la **evaluación automática de opiniones de cliente
 
 1. Creacion del Cluster en MongoDB
 
-   Como primer paso se debe realizar la creacion y configuracion en MongoDB donde se alojara la base de datos para almacenar y administrar nuestros datos.
-   <img width="1771" height="803" alt="image" src="https://github.com/user-attachments/assets/d4eb746c-57bc-4fd6-bc77-f6c5d2085116" />
+Como primer paso se debe realizar la creacion y configuracion en MongoDB donde se alojara la base de datos para almacenar y administrar nuestros datos.
+ <img width="1771" height="803" alt="image" src="https://github.com/user-attachments/assets/d4eb746c-57bc-4fd6-bc77-f6c5d2085116" />
 
+2. Descargar archivos CSV
+Es necesario obtener los archivos CSV que contienen la información base utilizada en la base de datos. Estos archivos incluyen datos de las reviews y los usuarios. Los archivos CSV se encuentran en la ruta '/documentacion/Datasets/Datasets.zip'  y asegúrate de mantener la estructura y nombres originales de los archivos para evitar errores en los pasos posteriores de carga e importación.
 
+3. Conexion a MongoDB, Data Wrangling e Insercion de los datos en MongoDB.
+Este notebook guía paso a paso el flujo completo: establecer la conexión segura con la base de datos MongoDB (usando URI o variables de entorno), realizar el data wrangling necesario (limpieza, transformación y normalización de los CSV), y finalmente insertar los datos en las colecciones correspondientes de MongoDB. Sigue las celdas en orden, provee las credenciales solicitadas.
 
+<img width="999" height="504" alt="image" src="https://github.com/user-attachments/assets/7eb715cc-1a5a-48de-aaa2-dc9063ca3016" />
+
+4. Implementacion de Modelos con Machine Learning para el Analisis de Sentimiento.
+   4.1. Modelo Regression Logistic
+   4.2. Modelo Bert
+
+5. Dashboard
 
 
 #Clonar el repositorio
