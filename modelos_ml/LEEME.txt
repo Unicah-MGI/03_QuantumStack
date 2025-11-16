@@ -1,0 +1,2 @@
+1- ml-proyectobdo.py lo puede ejecutar mediante las herramientas de colab de google
+2- Pueden ejecutarlo todo de una vez o por bloque(Preferentemente por bloque), para evitar carga de datos innecesaria o alterar la DB
