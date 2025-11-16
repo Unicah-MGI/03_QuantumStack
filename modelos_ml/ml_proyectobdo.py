@@ -40,7 +40,7 @@ results_collection = db["reviews_sentiment"]
 
 print("Conexión establecida")
 
-
+#Carga de datos desde mongoDB
 data = list(collection.find({}, {"Review_ID": 1, "Review_Text": 1}))
 df = pd.DataFrame(data)
 
@@ -48,7 +48,7 @@ df.rename(columns={"_id": "review_id", "Review_Text": "text"}, inplace=True)
 
 print("Total de reseñas cargadas:", len(df))
 
-
+#Preparacion y limpieza de texto
 nltk.download("stopwords")
 
 stop_words = set(stopwords.words("english"))
@@ -63,24 +63,27 @@ def clean_text(text):
 df["clean_text"] = df["text"].apply(clean_text)
 
 
-
+#vectorizacion con TF-IDF
 vectorizer = TfidfVectorizer(max_features=5000)
 X = vectorizer.fit_transform(df["clean_text"])
 
+#Creacion de etiquetas de sentimientos
 y = [1 if "good" in t or "excellent" in t or "great" in t else 0 for t in df["clean_text"]]
 
+#Entrenamiento de Logistic Regression
 model = LogisticRegression(max_iter=200)
 model.fit(X, y)
 
 print("Modelo Logistic Regression entrenado.")
 
+#Prediccion del sentimiento
 df["predicted_sentiment"] = model.predict(X)
 
 df["sentiment_label"] = df["predicted_sentiment"].map({1: "positive", 0: "negative"})
 
 print("Sentimientos generados.")
 
-
+#Extraccion de keywords
 feature_names = vectorizer.get_feature_names_out()
 
 def extract_keywords(vector_row, top_n=5):
@@ -92,7 +95,7 @@ df["keywords"] = [extract_keywords(X[i]) for i in range(X.shape[0])]
 
 print("Keywords generadas.")
 
-
+#Creacion de documentos resultados
 results = []
 
 for _, row in df.iterrows():
@@ -103,7 +106,7 @@ for _, row in df.iterrows():
         "keywords": row["keywords"]
     }
     results.append(doc)
-
+#Carga de documentos a MongoDb
 results_collection.insert_many(results)
 
 print("Resultados guardados en 'reviews_sentiment'")
